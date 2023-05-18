@@ -1,0 +1,43 @@
+{
+    "version": 1,
+    "disable_existing_loggers": false,
+    "formatters": {
+        "brief": {
+            "format": "[%(asctime)s - %(levelname)s] %(name)-12s %(message)s",
+            "datefmt": "%Y-%m-%d %H:%M:%S"
+        },
+        "precise": {
+            "format": "[%(asctime)s - %(levelname)s] %(name)-12s %(funcName)-30s %(message)s",
+            "datefmt": "%Y-%m-%d %H:%M:%S"
+        }
+    },
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "formatter": "brief",
+            "level": "DEBUG",
+            "stream": "ext://sys.stdout"
+        },
+        "file_handler": {
+            "class": "logger.TimedRotatingFileHandlerCustomNamer",
+            "formatter": "precise",
+            "level": "DEBUG",
+            "when": "d",
+            "interval": 1,
+            "filename": "./Log/Log.log"
+        },
+        "queue_handler": {
+            "class": "logger.LogQueuer",
+            "formatter": "brief",
+            "level": "DEBUG"
+        }
+    },
+    "root": {
+        "handlers": [
+            "console",
+            "file_handler",
+            "queue_handler"
+        ],
+        "level": "DEBUG"
+    }
+}

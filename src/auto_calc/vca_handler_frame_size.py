@@ -38,6 +38,18 @@ def __shape_to_xy(shape_points):
     return x_y_dict_list
 
 
+def new_resize(hbox: int, vbox: int, shape_in_x_y: list):
+    actual_frame_size = __xy_shape_size(shape_in_x_y)
+    size_diff = Frame_Box(hbox - actual_frame_size.x, vbox - actual_frame_size.y)
+    resized_vector = []
+    for i in range(shape_in_x_y):
+        x_vector = shape_in_x_y[i].x * size_diff.x * math.cos(i)
+        y_vector = shape_in_x_y[i].y * size_diff.y * math.sin(i)
+        resized_vector[i] = math.atan(x_vector, y_vector)
+    draw_points(resized_vector)
+    return resized_vector    
+
+
 def __xy_shape_size(x_y_dict_list):
     angle_x_list = [angle.x for angle in x_y_dict_list]
     angle_y_list = [angle.y for angle in x_y_dict_list]
@@ -138,9 +150,9 @@ def radius_recalc(shape_xy_resized=list, angle_count_convert=360) -> dict:
         length_a_to_b = math.sqrt((x_y_values_a.x - x_y_values_b.x) ** 2 + (x_y_values_a.y - x_y_values_b.y) ** 2)
         angle_diff = abs(abs(angle_a) - abs(angle_b))
         length_a_to_b = math.sqrt((length_a ** 2 + length_b ** 2) - (2 * length_a * length_b) * math.cos(angle_diff))
-        acos_value_1 = length_a ** 2 + length_a_to_b ** 2 - length_b ** 2
-        acos_value_2 = length_a * length_a_to_b * 2
-        angle_a_to_b = math.radians(math.acos(acos_value_1 / acos_value_2))
+        # acos_value_1 = length_a ** 2 + length_a_to_b ** 2 - length_b ** 2
+        # acos_value_2 = length_a * length_a_to_b * 2
+        # angle_a_to_b = math.radians(math.acos(acos_value_1 / acos_value_2))
         angle_resize_diff_a = abs(abs(math.degrees(angle_a)) - abs(angle))
         angle_resize_diff_b = abs(abs(math.degrees(angle_b)) - abs(angle))
         lengh_angle_diff = ''
@@ -194,6 +206,18 @@ def frame_resize(shape_data=list, vbox=int, hbox=int) -> dict:
     return shape_in_radius
 
 
+def frame_resize_new(shape_data: list, vbox: int, hbox: int) -> dict:
+    shape_data_corrected = __volpe_points_corrector(shape_data)
+    shape_to_xy = __shape_to_xy(shape_data_corrected)
+    frame_size = __xy_shape_size(shape_to_xy)
+    if abs(frame_size.hbox - int(hbox)) < 1.0 and abs(frame_size.vbox - int(vbox)) < 1.0 and len(shape_data_corrected) == 360:
+        shape_in_radius = {}
+        for angle, radius in enumerate(shape_data_corrected, 1):
+            shape_in_radius[angle] = radius
+        return shape_in_radius
+    shape_resized_xy = shape_xy_resize(shape_to_xy, vbox, hbox)    
+    shape_in_radius = radius_recalc(shape_resized_xy)
+    return shape_in_radius    
 
 # def radius_recalc(shape_xy_resized=list, angle_count_convert=360) -> dict:
 #     shape_in_angle = {}
@@ -289,6 +313,7 @@ system. It will tell you if B lies on the left or the right of AC.
 
 
 '''
+
 
 
 

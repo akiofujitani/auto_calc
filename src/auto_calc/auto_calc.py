@@ -123,6 +123,17 @@ blanks = '''
 
 '''
 
+desings_list = '''
+{
+    "design_list" : {
+        "lms_design" : "",
+        "corr_len" : "",
+        "design_type" 
+    }
+}
+'''
+
+
 
 '''
 =============================================================================================
@@ -138,7 +149,7 @@ def quit_func():
     return
 
 
-def lnam_swapper(lnam_list: list, lnam: any) -> int:
+def lnam_swapper(lnam_list: list, lnam: any) -> str:
     '''
     Get LNAM, compare and swap if LNAM matches values in LNAM list
     '''
@@ -157,11 +168,26 @@ def lnam_swapper(lnam_list: list, lnam: any) -> int:
 
 
 def refraction_index(lnam: str, blank_list: list) -> int:
+    '''
+    Get LNAM code and extract blank value, compare with given list and return the refraction index
+    '''
     index_code = lnam[1:4]
     for blank in blank_list:
         if blank.code in index_code:
-            return blank.code
+            return float(blank.code)
     return float(1.53)
+
+
+def frame_type_thicknes_definer(frame_type: str):
+    match int(frame_type):
+        case 4:
+            return 'safety'
+        case 3:
+            return 'grooved'
+        case 2:
+            return 'default'
+        case _:
+            return 'default' 
 
 
 def set_side_value(side: str, value: any) -> dict:
@@ -177,7 +203,7 @@ def set_side_value(side: str, value: any) -> dict:
             return {'R': value, 'L': value}
 
 
-def main(event: threading.Event, config: Configuration) -> None:
+def main(event: threading.Event, config: Configuration, lnam_swap_list: list) -> None:
     if event.isSet():
         return
     
@@ -192,6 +218,20 @@ def main(event: threading.Event, config: Configuration) -> None:
                     try:
                         file_contents = file_handler.file_reader(join(config.input, file))
                         vca_converted = vca_handler.VCA_to_dict(file_contents)
+
+                        '''
+                        LNAM Swapper
+
+                        '''
+                        if lnam_swap_list:
+                            new_lnam = lnam_swapper(lnam_swap_list, vca_converted['LNAM']['L'] if vca_converted['DO'] == 'L' else vca_converted['LNAM']['R'])
+                            if new_lnam:
+                                updated_tags['LNAM'] = set_side_value(vca_converted['DO'], new_lnam)
+                                logger.debug(f'LNAM: {new_lnam}')
+                        '''
+                        Thickness Type
+                        '''              
+                        
 
 
 

@@ -143,7 +143,7 @@ def file_writer(file_path=str, file_name=str, string_values=str) -> None:
         return
 
 
-def file_move_copy(path_from: str, path_to: str, file_name: str, copy: bool, overwrite: bool=False):
+def file_move_copy(path_from, path_to, file_name, copy=bool, overwrite=False):
     try:
         path_from = os.path.normpath(path_from)
         path_to = os.path.normpath(path_to)
