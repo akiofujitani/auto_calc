@@ -134,7 +134,7 @@ def file_reader(file_path):
             return file.readlines()
 
 
-def file_writer(file_path=str, file_name=str, string_values=str) -> None:
+def file_writer(file_path: str, file_name: str, string_values: str) -> None:
     if not os.path.exists(file_path):
         os.mkdir(file_path)
         logger.info(f'Directory {file_path} created')
@@ -143,7 +143,7 @@ def file_writer(file_path=str, file_name=str, string_values=str) -> None:
         return
 
 
-def file_move_copy(path_from, path_to, file_name, copy=bool, overwrite=False):
+def file_move_copy(path_from: str, path_to: str, file_name: str, copy: bool, overwrite: bool=False):
     try:
         path_from = os.path.normpath(path_from)
         path_to = os.path.normpath(path_to)
@@ -161,14 +161,14 @@ def file_move_copy(path_from, path_to, file_name, copy=bool, overwrite=False):
         raise error
 
 
-def __copy_number_definer(file_name=str):
+def __copy_number_definer(file_name: str):
     count = 0
     pure_file_name = file_name.replace(')', '').split('_(Copy_')
     count = int(pure_file_name[1]) + 1
     return f'{pure_file_name[0]}_(Copy_{count})'
 
 
-def __file_name_check(path, file_name):
+def __file_name_check(path: str, file_name: str):
     while os.path.exists(join(path, file_name)):
         name_splitted = file_name.split('.')
         if len(name_splitted) >= 2:
@@ -187,7 +187,7 @@ def __file_name_check(path, file_name):
     return file_name
 
 
-def fileNameDefiner(path, file_name, extention):
+def fileNameDefiner(path: str, file_name: str, extention: str):
     while os.path.exists(join(path, f'{file_name}.{extention}')):
         name_splitted = file_name.split('_')
         if len(name_splitted) == 1:
@@ -203,7 +203,7 @@ def fileNameDefiner(path, file_name, extention):
     return file_name
 
 
-def fileMoveRename(source, destin, source_name, destin_name):
+def fileMoveRename(source: str, destin: str, source_name: str, destin_name: str):
     destin_name_no_extention = destin_name.split('.')[0]
     extention = destin_name.split('.')[1]
     try:
@@ -217,7 +217,7 @@ def fileMoveRename(source, destin, source_name, destin_name):
     return
 
 
-def creatDir(path, dir_name=None):
+def creatDir(path: str, dir_name=None) -> None:
     full_path = path
     if not dir_name == None:
         full_path = join(path, dir_name)
@@ -227,7 +227,7 @@ def creatDir(path, dir_name=None):
     return
 
 
-def check_create_dir(path):
+def check_create_dir(path: str) -> str:
     try:
         if not os.path.exists(path):
             os.makedirs(path)

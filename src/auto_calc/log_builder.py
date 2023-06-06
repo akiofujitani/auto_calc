@@ -1,5 +1,3 @@
-import logging, json_config, tkinter
-import file_handler
 from datetime import datetime
 from os.path import abspath, splitext, dirname
 from dataclasses import dataclass
@@ -7,6 +5,8 @@ from tkinter.scrolledtext import ScrolledText
 from queue import Queue
 from logging.config import dictConfig
 from logging.handlers import TimedRotatingFileHandler
+import logging, json_config, tkinter, file_handler
+
 
 @dataclass
 class LogConfig:
@@ -43,7 +43,7 @@ try:
             "stream": "ext://sys.stdout"
         },
         "file_handler": {
-            "class" : "logger.TimedRotatingFileHandlerCustomNamer",
+            "class" : "log_builder.TimedRotatingFileHandlerCustomNamer",
             "formatter" : "precise",
             "level" : "DEBUG",
             "when" : "d",
@@ -51,7 +51,7 @@ try:
             "filename" : "./Log/Log.log"
         },
         "queue_handler" : {
-            "class" : "logger.LogQueuer",
+            "class" : "log_builder.LogQueuer",
             "formatter" : "brief",
             "level" : "DEBUG"
         }
@@ -172,7 +172,7 @@ class TimedRotatingFileHandlerCustomNamer(TimedRotatingFileHandler):
 
 if __name__ == '__main__':
     
-    loggers = logging.getLogger()
-    logger_setup(loggers)
-    loggers.debug('Test')
-    loggers.info('Done')
+    logger = logging.getLogger()
+    logger_setup(logger)
+    logger.debug('Test')
+    logger.info('Done')

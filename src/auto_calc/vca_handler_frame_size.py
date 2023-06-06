@@ -58,7 +58,7 @@ def __xy_shape_size(x_y_dict_list):
     return frame_size
 
 
-def shape_xy_resize(x_y_dict_list=list, hbox=str, vbox=str):
+def shape_xy_resize(x_y_dict_list: list, hbox: str, vbox: str):
     frame_size = __xy_shape_size(x_y_dict_list)
     try:
         hbox = int(hbox)
@@ -80,8 +80,9 @@ def shape_xy_resize(x_y_dict_list=list, hbox=str, vbox=str):
     return shape_xy_resized
 
 
-def __atan_to_360(y_x_values=Point) -> math.radians:
+def __atan_to_360(y_x_values: Point) -> math.radians:
     angle_radians = math.atan(y_x_values.y / y_x_values.x)
+    
     x = y_x_values.x
     y = y_x_values.y
     if x > 0 and y > 0:
@@ -111,28 +112,55 @@ def __cycle_values(value, reference_cycle):
         return value
 
 
-def __get_current_angles(shape_xy_resized=list) -> list:
+def __get_current_angles(shape_xy_resized: list) -> list:
     angle_values = []
     for xy_values in shape_xy_resized:
         angle_values.append(__atan_to_360(xy_values))
     return angle_values
 
 
-def __get_closest_angles(angle=float, angle_values=list) -> int:
+def __get_closest_angles(angle: float, angle_values: list) -> int:
+    '''
+    Get the closest point values to calculate the current angle
+    '''
     radian_angle = math.radians(angle)
-    counter_minus = 0
-    counter_plus = 0
+    logger.debug(f'Angle in radian {radian_angle}')
+    counter_minus = ''
+    counter_plus = ''
     for counter, value in enumerate(angle_values):
+        logger.debug(value * 180 / math.pi)
         if value < radian_angle:
             counter_minus = counter
         else:
             counter_plus = counter
-            if counter_minus:
+            if not counter_minus == None:
+                return counter_minus, counter_plus
+
+
+def __get_closest_angles_plus(angle: float, angle_values: list, number_of_values: int=5) -> list:
+    '''
+    Get the closest point values to calculate the current angle
+    '''
+    radian_angle = math.radians(angle)
+    logger.debug(f'Angle in radian {radian_angle}')
+    counter_minus = ''
+    counter_plus = ''
+    for counter, value in enumerate(angle_values):
+        logger.debug(value * 180 / math.pi)
+        if value < radian_angle:
+            counter_minus = counter
+        else:
+            counter_plus = counter
+            if not counter_minus == None:
                 break
-    return counter_minus, counter_plus
+    return_list = [counter_minus, counter_plus]
+    for i in range(number_of_values - 2):
+        return_list.append((counter_plus + i + 1) % len(angle_values))
+    return return_list
 
 
-def radius_recalc(shape_xy_resized=list, angle_count_convert=360) -> dict:
+
+def radius_recalc(shape_xy_resized: list, angle_count_convert: int=360) -> dict:
     shape_in_angle = {}
     angle = 1
     shape_xy_angle = __get_current_angles(shape_xy_resized)
@@ -206,62 +234,52 @@ def frame_resize(shape_data=list, vbox=int, hbox=int) -> dict:
     return shape_in_radius
 
 
-def frame_resize_new(shape_data: list, vbox: int, hbox: int) -> dict:
-    shape_data_corrected = __volpe_points_corrector(shape_data)
-    shape_to_xy = __shape_to_xy(shape_data_corrected)
+def frame_recenter(shape_data: list, side: str, ipd: float, ocht: float, dbl: float) -> dict:
+    shape_to_xy = __shape_to_xy(shape_data)
     frame_size = __xy_shape_size(shape_to_xy)
-    if abs(frame_size.hbox - int(hbox)) < 1.0 and abs(frame_size.vbox - int(vbox)) < 1.0 and len(shape_data_corrected) == 360:
-        shape_in_radius = {}
-        for angle, radius in enumerate(shape_data_corrected, 1):
-            shape_in_radius[angle] = radius
-        return shape_in_radius
-    shape_resized_xy = shape_xy_resize(shape_to_xy, vbox, hbox)    
-    shape_in_radius = radius_recalc(shape_resized_xy)
-    return shape_in_radius    
-
-# def radius_recalc(shape_xy_resized=list, angle_count_convert=360) -> dict:
-#     shape_in_angle = {}
-#     angle = 1
-#     shape_xy_angle = __get_current_angles(shape_xy_resized)
-#     while len(shape_in_angle.keys()) < angle_count_convert:
-#         low, high = __get_closest_angles(angle, shape_xy_angle)
-#         print(f'{low} {angle} {high}')
-#         if angle == 360:
-#             print(angle)
-#         x_y_values_a = shape_xy_resized[low]
-#         x_y_values_b = shape_xy_resized[high]
-#         angle_a = __atan_to_360(x_y_values_a)
-#         angle_b = __atan_to_360(x_y_values_b)
-
-#         length_a = math.sqrt(x_y_values_a.x ** 2 + x_y_values_a.y ** 2)
-#         length_b = math.sqrt(x_y_values_b.x** 2 + x_y_values_b.y ** 2)
-#         length_a_to_b = math.sqrt((x_y_values_a.x - x_y_values_b.x) ** 2 + (x_y_values_a.y - x_y_values_b.y) ** 2)
-#         # angle_diff = abs(abs(angle_a) - abs(angle_b))
-#         # length_a_to_b = math.sqrt((length_a ** 2 + length_b ** 2) - (2 * length_a * length_b) * math.cos(angle_diff))
-#         acos_value_1 = length_a ** 2 + length_a_to_b ** 2 - length_b ** 2
-#         acos_value_2 = length_a * length_a_to_b * 2
-#         angle_a_to_b = math.radians(math.acos(acos_value_1 / acos_value_2))
-#         angle_resize_diff_a = abs(abs(math.degrees(angle_a)) - abs(angle))
-#         angle_resize_diff_b = abs(abs(math.degrees(angle_b)) - abs(angle))
-#         lengh_angle_diff = ''
-#         length = ''
-#         if angle_resize_diff_a > angle_resize_diff_b and not angle_resize_diff_b == 0:
-#             lengh_angle_diff = math.sqrt((length_a ** 2 + length_b ** 2) - 2 * length_a * length_b * math.cos(math.radians(angle_resize_diff_a)))
-#             length = round(math.sqrt((length_a ** 2 + lengh_angle_diff ** 2) - 2 * length_a * lengh_angle_diff * math.cos(angle_a_to_b)))
-#         elif angle_resize_diff_a < angle_resize_diff_b and not angle_resize_diff_a == 0:
-#             lengh_angle_diff = math.sqrt((length_a ** 2 + length_b ** 2) - 2 * length_a * length_b * math.cos(math.radians(angle_resize_diff_b)))
-#             length = round(math.sqrt((length_b ** 2 + lengh_angle_diff ** 2) - 2 * length_b * lengh_angle_diff * math.cos(angle_a_to_b)))
-#         elif angle_resize_diff_a == 0:
-#             length = length_b
-#         else:
-#             length = length_a
-#         shape_in_angle[angle] = length
-#         angle = angle + 1 if angle < 360 else 0
-#     draw_points(shape_in_angle)
-#     return shape_in_angle
+    logger.debug(f'Calculating diff {frame_size.hbox} x {frame_size.vbox}')
+    horizontal_center_diff = (frame_size.hbox / 2) - (ipd * 100) - ((dbl * 100) / 2)
+    vertical_center_diff = (ocht * 100) - (frame_size.vbox / 2)
+    if side == 'L':
+        horizontal_center_diff = horizontal_center_diff * -1
+    shape_center_repositioned = xy_center_pos(shape_to_xy, horizontal_center_diff, vertical_center_diff)
+    shape_in_radius = radius_recalc(shape_center_repositioned)
+    return shape_in_radius
 
 
-def draw_points(points_dict=list, width=600, height=400, scale=15):
+def xy_center_pos(shape_in_xy: list, horizontal_center_diff: float, vertical_center_diff: float) -> list:
+    center_reposition = []
+    for point in shape_in_xy:
+        center_reposition.append(Point(point.x - horizontal_center_diff, point.y - vertical_center_diff))
+    return center_reposition
+
+
+def resize_points(radius_list: list, hbox: float, vbox: float) -> dict:
+    xy_shape = __shape_to_xy(radius_list)
+    actual_shape_size = __xy_shape_size(xy_shape)
+    x_factor = actual_shape_size.hbox / hbox
+    y_factor = actual_shape_size.vbox / vbox
+
+    angle_step = math.radians(360 / len(radius_list))
+    resized_shape = {}
+    angle = 0
+    for radius in radius_list:
+        x_pre_resized = radius * x_factor
+        x_diff = x_pre_resized * math.cos(math.radians(angle))
+        y_pre_resized = radius * y_factor
+        y_diff = y_pre_resized * math.sin(math.radians(angle))
+        x_resized = x_diff * math.cos(angle) - y_diff * math.sin(angle)
+        y_resized = x_diff * math.cos(angle) + y_diff * math.sin(angle)
+
+        new_angle = math.atan2(y_resized, x_resized)
+        new_radius = round(math.sqrt((x_resized ** 2) + (y_resized ** 2)))
+        resized_shape[new_angle] = new_radius
+        angle += angle_step
+    
+    return resized_shape
+
+
+def draw_points(points_dict: list, width: int=600, height: int=400, scale: int=15) -> None:
     logger.debug('Draw shape points')
     image = Image.new('RGB', (width, height), 'white')
     draw = ImageDraw.Draw(image)
@@ -314,24 +332,65 @@ system. It will tell you if B lies on the left or the right of AC.
 
 '''
 
+def determinant_fast(square_matrix: list) -> float:
+    '''
+    Thanks to Thom Ives
+    https://integratedmlai.com/find-the-determinant-of-a-matrix-with-pure-python-without-numpy-or-scipy/
+    '''
+
+    # Section 1: Establish n parameter and copy A
+    n = len(square_matrix)
+    AM = square_matrix.copy()
+ 
+    # Section 2: Row ops on A to get in upper triangle form
+    for fd in range(n): # A) fd stands for focus diagonal
+        for i in range(fd+1,n): # B) only use rows below fd row
+            if AM[fd][fd] == 0: # C) if diagonal is zero ...
+                AM[fd][fd] == 1.0e-18 # change to ~zero
+            # D) cr stands for "current row"
+            crScaler = AM[i][fd] / AM[fd][fd] 
+            # E) cr - crScaler * fdRow, one element at a time
+            for j in range(n): 
+                AM[i][j] = AM[i][j] - crScaler * AM[fd][j]
+     
+    # Section 3: Once AM is in upper triangle form ...
+    product = 1.0
+    for i in range(n):
+        # ... product of diagonals is determinant
+        product *= AM[i][i] 
+ 
+    return product
 
 
-
-def three_points(point_a, point_b, point_c):
-    mid_AB = ((point_a['x'] + point_b['x']) / 2, (point_a['y'] + point_b['y']) /2)
-    mid_BC = ((point_b['x'] + point_c['x'])/ 2, (point_b['y'] + point_c['y']) / 2)
-
-    slope_AB = (point_b['y'] - point_a['y']) / (point_b['x'] - point_a['x'])
-    slope_BC = (point_c['y'] - point_b['y']) / (point_c['x'] - point_b['x'])
-
-    slope_perp_AB = -(slope_AB) ** -1
-    slope_perp_BC = -(slope_BC) ** -1
-
-    print(f'{mid_AB} / {mid_BC}')
-    print(f'{slope_AB} / {slope_BC}')
-    print(f'{slope_perp_AB} / {slope_perp_BC}')
-    pass
-
+def determinant_recursive(A: list, total=0):
+    # Section 1: store indices in list for row referencing
+    indices = list(range(len(A)))
+     
+    # Section 2: when at 2x2 submatrices recursive calls end
+    if len(A) == 2 and len(A[0]) == 2:
+        val = A[0][0] * A[1][1] - A[1][0] * A[0][1]
+        return val
+ 
+    # Section 3: define submatrix for focus column and 
+    #      call this function
+    for fc in indices: # A) for each focus column, ...
+        # find the submatrix ...
+        As = A.copy() # B) make a copy, and ...
+        As = As[1:] # ... C) remove the first row
+        height = len(As) # D) 
+ 
+        for i in range(height): 
+            # E) for each remaining row of submatrix ...
+            #     remove the focus column elements
+            As[i] = As[i][0:fc] + As[i][fc+1:] 
+ 
+        sign = (-1) ** (fc % 2) # F) 
+        # G) pass submatrix recursively
+        sub_det = determinant_recursive(As)
+        # H) total all returns from recursion
+        total += sign * A[0][fc] * sub_det 
+ 
+    return total
 
 
 
@@ -432,25 +491,3 @@ Thus the equation of the circle is:
 
 
 '''
-
-
-def center(point_a=Point, point_b=Point, point_c=Point):
-    point_a = Point(point_a['x'], point_a['y'])
-    point_b = Point(point_b['x'], point_b['y'])
-    point_c = Point(point_c['x'], point_c['y'])
-
-
-    x = point_c.x ** 2 - point_a.x ** 2 + point_c.y ** 2 - point_a.y ** 2 - 2 * (point_c.x - point_a.x) * y / 2 * (point_c.y - point_a.x)
-    y = point_b.x ** 2 - point_a.x ** 2 + point_b.y ** 2 - point_a.y ** 2 - 2 * (point_b.x - point_a.x) * x / 2 * (point_b.y - point_a.y)
-    
-
-    print(y)
-    print(x)
-
-    # radius = math.sqrt((point_a.x + h) ** 2 + (point_a.y - k) ** 2)
-    # radius = math.sqrt((point_b.x + h) ** 2 + (point_b.y - k) ** 2)
-    # radius = math.sqrt((point_b.x + h) ** 2 + (point_b.y - k) ** 2)
-
-
-
-    pass

@@ -24,14 +24,77 @@ def __resize_both_sides(trcfmt=dict, hbox=int, vbox=int) -> dict:
     return resized_trcfmt
 
 
+def resize(trcfmt: dict, hbox: int, vbox: int) -> dict:
+    '''
+    Resize trcfmt values
+    trcfmt = {'R' : radius list and TRCFMT values, 'L' : radius list and TRCFMT values}
+    hbox = horizontal frame length
+    vbox = vertical frame length
+    '''
+    try:
+        resized_trcfmt = {}
+        temp_trcfmt = {}
+        for side, radius_list in trcfmt.items():
+            if radius_list:
+                shape_resized = vca_handler_frame_size.resize_points(radius_list, hbox, vbox)
+                temp_trcfmt[side] = list(shape_resized.values())
+                temp_trcfmt['TRCFMT'] = ['1', str(len(shape_resized)), 'E', side, 'F']
+                resized_trcfmt[side] = temp_trcfmt
+                temp_trcfmt = {}
+                logger.debug(f'Resize {side} done')
+        if len(resized_trcfmt) == 1:
+            other_side = 'R' if list(resized_trcfmt.keys())[0] == 'L' else 'R'
+            temp_trcfmt['R'] = list(vca_handler_frame_size.shape_mirror(shape_resized).values())
+            temp_trcfmt['TRCFMT'] = ['1', len(shape_resized), 'E', other_side, 'F']
+            resized_trcfmt[other_side] = temp_trcfmt
+            logger.debug(f'Mirror {other_side} done')
+        logger.debug(f'Resize done')
+        return resized_trcfmt
+    except Exception as error:
+        logger.error(f'Frame resize error {error}')
+        raise error
+
+
+def shape_center(trcfmt: dict, ipd: dict, ocht: dict, dbl: float) -> dict:
+    '''
+    Used to thickness calculation, must have both sides to work
+    If one side is missing, other side will be copied to fill the value gap
+    trcfmt -> R: radius list, L: radius list
+    ipd -> R: float, L: float
+    ocht -> R: float, L: float
+    dbl -> float
+    '''
+    try:
+        ipd_values = r_l_gap_filler(ipd)
+        ocht_values = r_l_gap_filler(ocht)
+
+        shape_optical_center = {}
+        for side, trcfmt_value in trcfmt:
+            shape_optical_center[side] = vca_handler_frame_size.frame_recenter(trcfmt_value['R'], 
+                                side, 
+                                ipd_values[side], 
+                                ocht_values[side], 
+                                dbl)
+        return shape_optical_center
+    except Exception as error:
+        logger.error(f'shape_center error {error}')
+        raise error
+
+
+def r_l_gap_filler(tag_value: dict) -> dict:
+    filled_tag_value = {}
+    for side, value in tag_value:
+        if not value:
+            other_side = 'R' if side == 'L' else 'L'
+            filled_tag_value[side] = tag_value[other_side]
+        else:
+            filled_tag_value[side] = value
+    return filled_tag_value
+
+
 if __name__ == '__main__':
     logger = logging.getLogger()
     log_builder.logger_setup(logger)
-    try:
-        config = json_config.load_json_config('frame_resize.json')
-    except Exception as error:
-        logger.critical(f'Error loading configuration json file due \n{error}')
-        quit()
 
 
     # path = os.path.normpath(config['path'])

@@ -1,75 +1,9 @@
-import file_handler, json_config, log_builder, logging, keyboard, threading, vca_handler
-from dataclasses import dataclass
+import file_handler, json_config, log_builder, logging, keyboard, threading, vca_handler, frame_resize, calc_proccess
+from classes import *
 from time import sleep
-from os.path import normpath, abspath
 from ntpath import join
 
 logger = logging.getLogger('auto_calc')
-
-
-'''
-=============================================================================================
-
-        Classes     Classes     Classes     Classes     Classes     Classes     Classes     
-
-=============================================================================================
-'''
-
-@dataclass
-class Configuration:
-    input : str
-    output : str
-    error : str
-    extension : str
-    sleep_time : int
-
-
-
-    def __eq__(self, __o: object) -> bool:
-        if not isinstance(__o, self.__class__):
-            return NotImplemented
-        else:
-            self_values = self.__dict__
-            for key in self_values.keys():
-                if not getattr(self, key) == getattr(__o, key):
-                    return False
-            return True
-    
-
-    @classmethod
-    def init_dict(cls, dict_values=dict):
-        try:
-            input = normpath(dict_values['input'])
-            output = normpath(dict_values['output'])
-            error = normpath(dict_values['error'])
-            extension = dict_values ['extension']
-            sleep_time = int(dict_values['sleep_time'])
-            return cls(input, output, sleep_time)
-        except Exception as error:
-            logger.error(f'Error in {error}')
-
-
-@classmethod
-class Blank:
-    blank_code: int
-    code : int
-    index: float
-    index_group: str
-    base_list: dict
-
-
-    def __eq__(self, __o: object) -> bool:
-        if not isinstance(__o, self.__class__):
-            return NotImplemented
-        else:
-            self_values = self.__dict__
-            for key in self_values.keys():
-                if not getattr(self, key) == getattr(__o, key):
-                    return False
-            return True
-
-
-
 
 
 '''
@@ -80,23 +14,60 @@ class Blank:
 =============================================================================================
 ''' 
 
-template = '''
+config = '''
 {
-    "sleep_time" : 1,
+    "sleep_time" : 3,
     "input" : "./",
     "output" : "./",
     "error" : "./",
-    "extension" : "vca"
+    "extension" : "vca",
 }
 '''
 
-lnam_swap = '''
+parameters = '''
+    "frame_type" : {
+        "plastic" : "1",
+        "rimless" : "1",
+        "metal" : "2",
+        "rimless_grooved" : "3",
+        "security" : "4"
+    },
+    "default_ipd" : "32",
+    "default_ocht" : "21",
+    "default_dbl" : "18",
+    "corrlen_ocht" : {
+        "14" : {
+            "min" : "14",
+            "max" : "18"
+        },
+        "16" : {
+            "min" : "19",
+            "max" : "23"  
+        },
+        "18" : {
+            "min" : "24",
+            "max" : "29"  
+        },
+        "20" : {
+            "min" : "30",
+            "max" : "40"  
+        }
+    }
+'''
+
+
+tag_swap = '''
 {
-    "lnam_swap" : [
+    "tag_swap" : {
         {
-            "old" : "",
-            "new" : ""
-    ]
+            "tag" : {
+                "sign" : "",
+                "old_value" : "",
+                "new" : ""
+                "new_value" : ""            
+            }
+        }
+    }
 }
 
 '''
@@ -104,21 +75,42 @@ lnam_swap = '''
 
 blanks = '''
 {
-    "blank_list" : [
-        {
-            "blank_code" : "",
-            "code" : "",
-            "index" : "",
-            "index_group : "",
+    "blank_list" : {
+        "0000" : {
+            "blank_code" : "0000",
+            "code" : "000",
+            "index" : "1.53",
+            "index_group : "153",
+            "base_list": {
+                "0" : "0.00",
+                "1" : "1.00",
+                "2" : "2.00",
+                "3" : "3.00",
+                "4" : "4.00",
+                "5" : "5.00",
+                "6" : "6.00",
+                "7" : "7.00",
+                "8" : "8.00",
+                "9" : "9.00",
+                "10" : "10.00"
+            }
+        },
+        "4155" : {
+            "blank_code" : "4155",
+            "code" : "083",
+            "index" : "149",
+            "index_group : "1.49",
             "base_list": {
                 "0" : "0.50",
                 "2" : "2.00",
                 "4" : "4.00",
+                "5" : "5.00",
                 "6" : "6.00",
-                "8" : "8.00"
-            } 
+                "8" : "8.00",
+                "10" : "10.00"
+            }
         }
-    ]
+    }
 }
 
 '''
@@ -126,13 +118,19 @@ blanks = '''
 desings_list = '''
 {
     "design_list" : {
-        "lms_design" : "",
-        "corr_len" : "",
-        "design_type" 
+        "desing" : {
+            "lds" : "SCH",
+            "lds_code" : "1",
+            "design" : "Natural Accuracy",
+            "design_code" : "01",
+            "design_type" : "PR",
+            "corr_len" : [
+                "14", "16", "18"
+            ]  
+        }
     }
 }
 '''
-
 
 
 '''
@@ -144,63 +142,60 @@ desings_list = '''
 ''' 
 
 def quit_func():
+    '''
+    check event and terminated thread on set
+    '''
     logger.info('Quit pressed')
     event.set()
     return
 
 
-def lnam_swapper(lnam_list: list, lnam: any) -> str:
+def shape_resize(job_data: dict) -> dict:
     '''
-    Get LNAM, compare and swap if LNAM matches values in LNAM list
+    Return the shape resized to main function
     '''
-    original_lnam = str(lnam)
-    for key, swap_lnam in lnam_list:
-        new_lnam = []
-        for char in swap_lnam['old']:
-            if not char == '?':
-                if original_lnam[key] == char:
-                    new_lnam = new_lnam + char
-            else:
-                new_lnam = new_lnam + char
-        if len(new_lnam) == len(original_lnam):
-            return new_lnam
-    return
+    try:
+        side = job_data['DO']
+        hbox = calc_proccess.return_side_value(side, job_data['HBOX'])
+        vbox = calc_proccess.return_side_value(side, job_data['VBOX'])
+        shape_resized = frame_resize.resize(job_data['TRCFMT'], hbox, vbox)
+        return shape_resized
+    except Exception as error: 
+        logger.error(f'shape_resize error {error}')
+        raise error
 
 
-def refraction_index(lnam: str, blank_list: list) -> int:
+def fill_default(parameter_value: any, tag_value:any) -> any:
     '''
-    Get LNAM code and extract blank value, compare with given list and return the refraction index
+    Fill empty values with default ones from parameter object if not present in tag
     '''
-    index_code = lnam[1:4]
-    for blank in blank_list:
-        if blank.code in index_code:
-            return float(blank.code)
-    return float(1.53)
+    if tag_value.isinstance(dict):
+        updated_tag_value = {}
+        if 'R' in tag_value.keys():
+            for side, value in tag_value.items():
+                if not value and not tag_value['R' if side == 'L' else 'R']:
+                    updated_tag_value[side] = parameter_value
+            return updated_tag_value
+    else:
+        if not tag_value:
+            return parameter_value
+        else:
+            return tag_value
 
 
-def frame_type_thicknes_definer(frame_type: str):
-    match int(frame_type):
-        case 4:
-            return 'safety'
-        case 3:
-            return 'grooved'
-        case 2:
-            return 'default'
-        case _:
-            return 'default' 
-
-
-def set_side_value(side: str, value: any) -> dict:
+def shape_to_optical_center(parameters: Parameters, shape_resized: dict, job_data: dict) -> dict:
     '''
-    Match job side and return dictionary
+    Return the shape recentered to the optical center for thickness calculation
     '''
-    match side:
-        case 'R':
-            return {'R' : value, 'L' : ''}
-        case 'L':
-            return {'R' : '', 'L' : value}
-        case _:
-            return {'R': value, 'L': value}
+    try:
+        ipd = fill_default(parameters.ipd_default, job_data.get('IPD', {'R': '', 'L': ''}))
+        ocht = fill_default(parameters.ocht_default, job_data.get('OCHT', {'R': '', 'L': ''}))
+        dbl = fill_default(parameters.dbl_default, job_data.get('DBL', ''))
+        shape_recentered = frame_resize.shape_center(shape_resized, ipd, ocht, dbl)
+        return shape_recentered
+    except Exception as error:
+        logger.error(f'shpe_optical_center error {error}')
+        raise error
 
 
 def main(event: threading.Event, config: Configuration, lnam_swap_list: list) -> None:
@@ -219,21 +214,14 @@ def main(event: threading.Event, config: Configuration, lnam_swap_list: list) ->
                         file_contents = file_handler.file_reader(join(config.input, file))
                         vca_converted = vca_handler.VCA_to_dict(file_contents)
 
-                        '''
-                        LNAM Swapper
-
-                        '''
-                        if lnam_swap_list:
-                            new_lnam = lnam_swapper(lnam_swap_list, vca_converted['LNAM']['L'] if vca_converted['DO'] == 'L' else vca_converted['LNAM']['R'])
+                        if len(lnam_swap_list) > 0: # LNAM Swapper
+                            new_lnam = calc_proccess.lnam_swapper(lnam_swap_list, vca_converted['LNAM']['L'] if vca_converted['DO'] == 'L' else vca_converted['LNAM']['R'])
                             if new_lnam:
-                                updated_tags['LNAM'] = set_side_value(vca_converted['DO'], new_lnam)
+                                updated_tags['LNAM'] = calc_proccess.set_side_value(vca_converted['DO'], new_lnam)
                                 logger.debug(f'LNAM: {new_lnam}')
-                        '''
-                        Thickness Type
-                        '''              
+                        shape_resized = shape_resize(vca_converted)
+                        shape_optical_center = shape_to_optical_center(parameters, shape_resized, vca_converted)
                         
-
-
 
                     except Exception as error:
                         logger.error(f'VCA conversion error {error}')
@@ -260,7 +248,7 @@ if __name__ == '__main__':
 
 
     try:
-        config_dict = json_config.load_json_config('config.json', template)
+        config_dict = json_config.load_json_config('config.json', config)
         config = Configuration.init_dict(config_dict)
     except:
         logger.critical('Could not load config file')

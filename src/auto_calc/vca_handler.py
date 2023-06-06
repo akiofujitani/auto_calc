@@ -18,7 +18,7 @@ def VCA_to_dict(VCA_file_contents):
             line = line.replace('\n', '').replace('\t', '')
             if len(line) > 0:
                 tag_and_value = line.split('=')
-                logger.debug(tag_and_value[0])
+                logger.debug(f'{tag_and_value[0]}={tag_and_value[1]}')
                 if ';' not in tag_and_value[1]:
                     if tag_and_value[0] in data_value.keys():
                         data_value[tag_and_value[0]] = convert_add_to_list(data_value[tag_and_value[0]], tag_and_value[1])
@@ -32,7 +32,7 @@ def VCA_to_dict(VCA_file_contents):
                         else:
                             data_value[tag_and_value[0]] = {'R' : values_splited[0], 'L' : values_splited[1]}
                     if tag_and_value[0] == 'TRCFMT' or tag_and_value[0] == 'CRIBFMT':
-                        counter = round(int(values_splited[1]) / 15 if int(values_splited[1]) == 1000 else 10)
+                        counter = round(int(values_splited[1]) / (15 if int(values_splited[1]) == 1000 else 10))
                         temp_values = {}
                         tag_name = tag_and_value[0]
                         temp_values[tag_name] = values_splited
