@@ -1,0 +1,17 @@
+{
+    "design_list": {
+        "desing": {
+            "lds": "SCH",
+            "lds_code": "1",
+            "design": "Natural Accuracy",
+            "design_code": "01",
+            "design_type": "PR",
+            "corr_len_translator": "2",
+            "corr_len": [
+                "14",
+                "16",
+                "18"
+            ]
+        }
+    }
+}

@@ -127,10 +127,12 @@ def file_finder(file_list: list, file_name: str, start_pos: int=0, end_pos: None
 def file_reader(file_path):
     try:
         with open(file_path, encoding='utf-8') as file:
+            logger.info('returning file read in utf-8')
             return file.readlines()
     except Exception as error:
         logger.warning(f'Error {error}')
         with open(file_path, encoding='cp1252') as file:
+            logger.info('returning file read in cp1252')
             return file.readlines()
 
 

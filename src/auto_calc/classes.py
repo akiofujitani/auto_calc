@@ -39,26 +39,6 @@ class Configuration:
             logger.error(f'Error in {error}')
 
 
-@classmethod
-class Blank:
-    blank_code: int
-    code : int
-    index: float
-    index_group: str
-    base_list: dict
-
-
-    def __eq__(self, __o: object) -> bool:
-        if not isinstance(__o, self.__class__):
-            return NotImplemented
-        else:
-            self_values = self.__dict__
-            for key in self_values.keys():
-                if not getattr(self, key) == getattr(__o, key):
-                    return False
-            return True
-
-
 @dataclass
 class Parameters:
     frame_type: dict
@@ -100,8 +80,8 @@ class Parameters:
             default_ipd = float(dict_values['default_ipd'])
             default_ocht = float(dict_values['default_ocht'])
             default_dbl = float(dict_values['default_dbl'])
-            corr_len_ocht = dict_values['corr_len_ocht']
-            return cls(frame_type, default_ipd, default_ocht, default_dbl, corr_len_ocht)
+            corrlen_ocht = dict_values['corrlen_ocht']
+            return cls(frame_type, default_ipd, default_ocht, default_dbl, corrlen_ocht)
         except Exception as error:
             logger.error(f'Error in {error}')
 
@@ -178,44 +158,12 @@ class TagValue:
 
 
 @dataclass
-class BlankList:
-    blank_list : dict
-
-
-    def __eq__(self, __o: object) -> bool:
-        if not isinstance(__o, self.__class__):
-            return NotImplemented
-        else:
-            self_values = self.__dict__
-            for key in self_values.keys():
-                if not getattr(self, key) == getattr(__o, key):
-                    return False
-            return True
-
-
-    def return_index(self, code: int) -> float:
-        for blank in self.blank_list.values():
-            if code == blank.code:
-                return blank.index
-        return 1.53
-
-
-    @classmethod
-    def init_dict(cls, dict_values=dict):
-        try:
-            blank_list = {blank_code : Blank.init_dict(blank_value) for blank_code, blank_value in dict_values['blank_list'].items()}
-            return cls(blank_list)
-        except Exception as error:
-            logger.error(f'Error in {error}')
-
-
-
-@dataclass
 class Blank:
     blank_code : int
     code : int
     index : float
     index_group : str
+    index_type: str
     base_list : dict
 
 
@@ -237,8 +185,42 @@ class Blank:
             code = int(dict_values['code'])
             index = float(dict_values ['index'])
             index_group = str(dict_values['index_group'])
+            index_type = str(dict_values['index_type'])
             base_list = dict_values['base_list']
-            return cls(blank_code, code, index, index_group, base_list)
+            return cls(blank_code, code, index, index_group, index_type, base_list)
+        except Exception as error:
+            logger.error(f'Error in {error}')
+
+
+@dataclass
+class BlankList:
+    blank_list : dict
+
+
+    def __eq__(self, __o: object) -> bool:
+        if not isinstance(__o, self.__class__):
+            return NotImplemented
+        else:
+            self_values = self.__dict__
+            for key in self_values.keys():
+                if not getattr(self, key) == getattr(__o, key):
+                    return False
+            return True
+
+
+    def return_blank_by_lnam(self, lnam: int) -> Blank:
+        code = int(lnam[1:5])
+        for blank in self.blank_list:
+            if blank.code == code:
+                return blank
+        return self.blank_list['0000']
+    
+
+    @classmethod
+    def init_dict(cls, dict_values=dict):
+        try:
+            blank_list = {blank_code : Blank.init_dict(blank_value) for blank_code, blank_value in dict_values['blank_list'].items()}
+            return cls(blank_list)
         except Exception as error:
             logger.error(f'Error in {error}') 
 
@@ -283,9 +265,9 @@ class Design:
             design = dict_values ['design']
             design_code = int(dict_values['design_code'])
             design_type = str(dict_values['design_type'])
-            corr_len = dict_values['corr_len']
             corr_len_translator = dict_values['corr_len_translator']
-            return cls(lds, lds_code, design, design_code, design_type, corr_len, corr_len_translator)
+            corr_len = dict_values['corr_len']
+            return cls(lds, lds_code, design, design_code, design_type, corr_len_translator, corr_len)
         except Exception as error:
             logger.error(f'Error in {error}') 
 
@@ -328,5 +310,80 @@ class DesignList:
         try:
             design_list = {desing_name : Design.init_dict(design_value) for desing_name, design_value in dict_values['design_list'].items()}
             return cls(design_list)
+        except Exception as error:
+            logger.error(f'Error in {error}')
+
+
+@dataclass
+class FrameThickness:
+    thickness_list : dict
+
+
+    def return_thickness(self, sph_diopter: float):
+        sph_in_quarter = float(round(sph_diopter * 4) / 4)
+        max_diopter = max(float(diopter) for diopter in list(self.thickness_list.keys()))
+        min_diopter = min(float(diopter) for diopter in list(self.thickness_list.keys()))
+        if sph_in_quarter >= max_diopter:
+            thicknes_group = self.thickness_list[str(f'{max_diopter:0.2f}')]
+            return thicknes_group['ET']
+        if sph_in_quarter <= min_diopter:
+            thicknes_group = self.thickness_list[str(f'{max_diopter:0.2f}')]
+            return thicknes_group['CT']       
+        for sph, thicknes in self.thickness_list:
+            if float(sph) == sph_in_quarter:
+                if thicknes['CT']:
+                    return thicknes['CT']
+                else:
+                    return thicknes['ET']
+
+
+    def __eq__(self, __o: object) -> bool:
+        if not isinstance(__o, self.__class__):
+            return NotImplemented
+        else:
+            self_values = self.__dict__
+            for key in self_values.keys():
+                if not getattr(self, key) == getattr(__o, key):
+                    return False
+            return True
+
+
+    @classmethod
+    def init_dict(cls, dict_values=dict):
+        try:
+            thickness_list = dict_values
+            return cls(thickness_list)
+        except Exception as error:
+            logger.error(f'Error in {error}')
+
+
+@dataclass
+class FrameThicknessList:
+    frame_thickenss_list : dict
+
+
+    def return_frame_thickness_list(self, frame_type: str) -> FrameThickness:
+        if frame_type in self.frame_thickenss_list.keys():
+            return self.frame_thickenss_list[frame_type]
+        else:
+            return self.frame_thickenss_list['plastic']
+
+
+    def __eq__(self, __o: object) -> bool:
+        if not isinstance(__o, self.__class__):
+            return NotImplemented
+        else:
+            self_values = self.__dict__
+            for key in self_values.keys():
+                if not getattr(self, key) == getattr(__o, key):
+                    return False
+            return True
+
+
+    @classmethod
+    def init_dict(cls, dict_values=dict):
+        try:
+            frame_thickenss_list = {frame_type: FrameThickness(frame_thickness) for frame_type, frame_thickness in dict_values.items()}
+            return cls(frame_thickenss_list)
         except Exception as error:
             logger.error(f'Error in {error}')

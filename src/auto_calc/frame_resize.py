@@ -27,7 +27,12 @@ def __resize_both_sides(trcfmt=dict, hbox=int, vbox=int) -> dict:
 def resize(trcfmt: dict, hbox: int, vbox: int) -> dict:
     '''
     Resize trcfmt values
-    trcfmt = {'R' : radius list and TRCFMT values, 'L' : radius list and TRCFMT values}
+    trcfmt = {
+        'R' : [R] radius list,
+            [TRCFMT] TRCFMT values,
+        'L' : [R] radius list,
+            [TRCMFT] TRCFMT values
+    }
     hbox = horizontal frame length
     vbox = vertical frame length
     '''
@@ -36,8 +41,8 @@ def resize(trcfmt: dict, hbox: int, vbox: int) -> dict:
         temp_trcfmt = {}
         for side, radius_list in trcfmt.items():
             if radius_list:
-                shape_resized = vca_handler_frame_size.resize_points(radius_list, hbox, vbox)
-                temp_trcfmt[side] = list(shape_resized.values())
+                shape_resized = vca_handler_frame_size.resize_points(radius_list['R'], hbox, vbox)
+                temp_trcfmt['R'] = list(shape_resized.values())
                 temp_trcfmt['TRCFMT'] = ['1', str(len(shape_resized)), 'E', side, 'F']
                 resized_trcfmt[side] = temp_trcfmt
                 temp_trcfmt = {}
@@ -75,7 +80,7 @@ def shape_center(trcfmt: dict, ipd: dict, ocht: dict, dbl: float) -> dict:
                                 ipd_values[side], 
                                 ocht_values[side], 
                                 dbl)
-        return shape_optical_center
+        return shape_optical_center # Return just the radius list for both sides
     except Exception as error:
         logger.error(f'shape_center error {error}')
         raise error

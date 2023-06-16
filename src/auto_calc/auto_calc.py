@@ -20,7 +20,7 @@ config = '''
     "input" : "./",
     "output" : "./",
     "error" : "./",
-    "extension" : "vca",
+    "extension" : "vca"
 }
 '''
 
@@ -31,7 +31,7 @@ parameters_template = '''
         "rimless" : "1",
         "metal" : "2",
         "rimless_grooved" : "3",
-        "security" : "4"
+        "safety" : "4"
     },
     "default_ipd" : "32",
     "default_ocht" : "21",
@@ -54,6 +54,7 @@ parameters_template = '''
             "max" : "40"  
         }
     }
+}
 '''
 
 min_thickness_template = '''
@@ -1348,15 +1349,15 @@ tag_swap = '''
 
 '''
 
-
-blanks = '''
+blanks_template = '''
 {
     "blank_list" : {
         "0000" : {
             "blank_code" : "0000",
             "code" : "000",
             "index" : "1.53",
-            "index_group : "153",
+            "index_group" : "153",
+            "ïndex_type" : "low",
             "base_list": {
                 "0" : "0.00",
                 "1" : "1.00",
@@ -1374,8 +1375,9 @@ blanks = '''
         "4155" : {
             "blank_code" : "4155",
             "code" : "083",
-            "index" : "149",
-            "index_group : "1.49",
+            "index" : "1.49",
+            "ïndex_type" : "low",
+            "index_group" : "149",
             "base_list": {
                 "0" : "0.50",
                 "2" : "2.00",
@@ -1391,7 +1393,7 @@ blanks = '''
 
 '''
 
-desings_list = '''
+desings_list_template = '''
 {
     "design_list" : {
         "desing" : {
@@ -1400,9 +1402,12 @@ desings_list = '''
             "design" : "Natural Accuracy",
             "design_code" : "01",
             "design_type" : "PR",
+            "corr_len_translator" : "2",
             "corr_len" : [
-                "14", "16", "18"
-            ]  
+                "14", 
+                "16", 
+                "18"
+            ]
         }
     }
 }
@@ -1434,29 +1439,16 @@ def shape_resize(job_data: dict) -> dict:
         side = job_data['DO']
         hbox = calc_proccess.return_side_value(side, job_data['HBOX'])
         vbox = calc_proccess.return_side_value(side, job_data['VBOX'])
+        logger.debug(f'shape_resize {side} {hbox} {vbox}')
         shape_resized = frame_resize.resize(job_data['TRCFMT'], hbox, vbox)
+        logger.info(f'Returning shape resized')
         return shape_resized
     except Exception as error: 
         logger.error(f'shape_resize error {error}')
         raise error
 
 
-def fill_default(parameter_value: any, tag_value:any) -> any:
-    '''
-    Fill empty values with default ones from parameter object if not present in tag
-    '''
-    if tag_value.isinstance(dict):
-        updated_tag_value = {}
-        if 'R' in tag_value.keys():
-            for side, value in tag_value.items():
-                if not value and not tag_value['R' if side == 'L' else 'R']:
-                    updated_tag_value[side] = parameter_value
-            return updated_tag_value
-    else:
-        if not tag_value:
-            return parameter_value
-        else:
-            return tag_value
+
 
 
 def shape_to_optical_center(parameters: Parameters, shape_resized: dict, job_data: dict) -> dict:
@@ -1464,10 +1456,12 @@ def shape_to_optical_center(parameters: Parameters, shape_resized: dict, job_dat
     Return the shape recentered to the optical center for thickness calculation
     '''
     try:
-        ipd = fill_default(parameters.ipd_default, job_data.get('IPD', {'R': '', 'L': ''}))
-        ocht = fill_default(parameters.ocht_default, job_data.get('OCHT', {'R': '', 'L': ''}))
-        dbl = fill_default(parameters.dbl_default, job_data.get('DBL', ''))
+        ipd = calc_proccess.fill_default(parameters.ipd_default, job_data.get('IPD', {'R': '', 'L': ''}))
+        ocht = calc_proccess.fill_default(parameters.ocht_default, job_data.get('OCHT', {'R': '', 'L': ''}))
+        dbl = calc_proccess.fill_default(parameters.dbl_default, job_data.get('DBL', ''))
+        logger.debug(f'shape_to_opctical_center {ipd} {ocht} {dbl}')
         shape_recentered = frame_resize.shape_center(shape_resized, ipd, ocht, dbl)
+        logger.info(f'Returning shape recentered')
         return shape_recentered
     except Exception as error:
         logger.error(f'shpe_optical_center error {error}')
@@ -1488,15 +1482,16 @@ def main(event: threading.Event, config: Configuration, lnam_swap_list: list) ->
                     updated_tags = {}
                     try:
                         file_contents = file_handler.file_reader(join(config.input, file))
-                        vca_converted = vca_handler.VCA_to_dict(file_contents)
+                        job_data = vca_handler.VCA_to_dict(file_contents)
 
+                        logger.info(f'Starting calculation for {job_data["JOB"]}')
                         if len(lnam_swap_list) > 0: # LNAM Swapper
-                            new_lnam = calc_proccess.lnam_swapper(lnam_swap_list, vca_converted['LNAM']['L'] if vca_converted['DO'] == 'L' else vca_converted['LNAM']['R'])
+                            new_lnam = calc_proccess.lnam_swapper(lnam_swap_list, job_data['LNAM']['L'] if job_data['DO'] == 'L' else job_data['LNAM']['R'])
                             if new_lnam:
-                                updated_tags['LNAM'] = calc_proccess.set_side_value(vca_converted['DO'], new_lnam)
+                                updated_tags['LNAM'] = calc_proccess.set_side_value(job_data['DO'], new_lnam)
                                 logger.debug(f'LNAM: {new_lnam}')
-                        shape_resized = shape_resize(vca_converted)
-                        shape_optical_center = shape_to_optical_center(parameters, shape_resized, vca_converted)
+                        shape_resized = shape_resize(job_data)
+                        shape_optical_center = shape_to_optical_center(parameters, shape_resized, job_data)
                         
 
                     except Exception as error:
@@ -1524,8 +1519,11 @@ if __name__ == '__main__':
 
 
     try:
-        config_dict = json_config.load_json_config('config.json', config)
-        config = Configuration.init_dict(config_dict)
+        config = Configuration.init_dict(json_config.load_json_config('config.json', config))
+        parameters = Parameters.init_dict(json_config.load_json_config('parameters.json', parameters_template))
+        min_thickness = FrameThicknessList.init_dict(json_config.load_json_config('min_thickness.json', min_thickness_template))
+        blank_list = BlankList.init_dict(json_config.load_json_config('blank_list.json', blanks_template))
+        design_list = DesignList.init_dict(json_config.load_json_config('design_list.json', desings_list_template))
     except:
         logger.critical('Could not load config file')
         exit()

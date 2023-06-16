@@ -1,0 +1,7 @@
+{
+    "sleep_time": 3,
+    "input": "./",
+    "output": "./",
+    "error": "./",
+    "extension": "vca"
+}
