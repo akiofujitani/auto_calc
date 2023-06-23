@@ -53,7 +53,9 @@ parameters_template = '''
             "min" : "30",
             "max" : "40"  
         }
-    }
+    },
+    "thick_on_vertical_ax" : "1.50",
+    "min_sph_value" : "0.50"
 }
 '''
 
@@ -1357,7 +1359,7 @@ blanks_template = '''
             "code" : "000",
             "index" : "1.53",
             "index_group" : "153",
-            "ïndex_type" : "low",
+            "index_type" : "low",
             "base_list": {
                 "0" : "0.00",
                 "1" : "1.00",
@@ -1376,7 +1378,7 @@ blanks_template = '''
             "blank_code" : "4155",
             "code" : "083",
             "index" : "1.49",
-            "ïndex_type" : "low",
+            "index_type" : "low",
             "index_group" : "149",
             "base_list": {
                 "0" : "0.50",
@@ -1456,9 +1458,15 @@ def shape_to_optical_center(parameters: Parameters, shape_resized: dict, job_dat
     Return the shape recentered to the optical center for thickness calculation
     '''
     try:
-        ipd = calc_proccess.fill_default(parameters.ipd_default, job_data.get('IPD', {'R': '', 'L': ''}))
-        ocht = calc_proccess.fill_default(parameters.ocht_default, job_data.get('OCHT', {'R': '', 'L': ''}))
-        dbl = calc_proccess.fill_default(parameters.dbl_default, job_data.get('DBL', ''))
+        ipd = calc_proccess.fill_default(parameters.default_ipd, job_data.get('IPD', {'R': '', 'L': ''}))
+        ocht = calc_proccess.fill_default(parameters.default_ocht, job_data.get('OCHT', {'R': '', 'L': ''}))
+        dbl = calc_proccess.fill_default(parameters.default_dbl, job_data.get('DBL', ''))
+
+        '''
+        Get design
+        If PR substract center to far value from OCHT. < usually 4 mm
+        '''
+
         logger.debug(f'shape_to_opctical_center {ipd} {ocht} {dbl}')
         shape_recentered = frame_resize.shape_center(shape_resized, ipd, ocht, dbl)
         logger.info(f'Returning shape recentered')
@@ -1468,8 +1476,8 @@ def shape_to_optical_center(parameters: Parameters, shape_resized: dict, job_dat
         raise error
 
 
-def main(event: threading.Event, config: Configuration, lnam_swap_list: list) -> None:
-    if event.isSet():
+def main(event: threading.Event, config: Configuration, *args) -> None:
+    if event.is_set():
         return
     
     done_list = []
@@ -1485,11 +1493,11 @@ def main(event: threading.Event, config: Configuration, lnam_swap_list: list) ->
                         job_data = vca_handler.VCA_to_dict(file_contents)
 
                         logger.info(f'Starting calculation for {job_data["JOB"]}')
-                        if len(lnam_swap_list) > 0: # LNAM Swapper
-                            new_lnam = calc_proccess.lnam_swapper(lnam_swap_list, job_data['LNAM']['L'] if job_data['DO'] == 'L' else job_data['LNAM']['R'])
-                            if new_lnam:
-                                updated_tags['LNAM'] = calc_proccess.set_side_value(job_data['DO'], new_lnam)
-                                logger.debug(f'LNAM: {new_lnam}')
+                        # if len(lnam_swap_list) > 0: # LNAM Swapper
+                        #     new_lnam = calc_proccess.lnam_swapper(lnam_swap_list, job_data['LNAM']['L'] if job_data['DO'] == 'L' else job_data['LNAM']['R'])
+                        #     if new_lnam:
+                        #         updated_tags['LNAM'] = calc_proccess.set_side_value(job_data['DO'], new_lnam)
+                        #         logger.debug(f'LNAM: {new_lnam}')
                         shape_resized = shape_resize(job_data)
                         shape_optical_center = shape_to_optical_center(parameters, shape_resized, job_data)
                         
@@ -1535,7 +1543,7 @@ if __name__ == '__main__':
     for _ in range(3):
         if event.is_set():
             break
-        thread = threading.Thread(target=main, args=(event, config, ), name='white_label')
+        thread = threading.Thread(target=main, args=(event, config, parameters, min_thickness, blank_list, design_list,), name='white_label')
         thread.start()
         thread.join()
 

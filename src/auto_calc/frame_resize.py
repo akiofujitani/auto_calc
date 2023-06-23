@@ -74,7 +74,7 @@ def shape_center(trcfmt: dict, ipd: dict, ocht: dict, dbl: float) -> dict:
         ocht_values = r_l_gap_filler(ocht)
 
         shape_optical_center = {}
-        for side, trcfmt_value in trcfmt:
+        for side, trcfmt_value in trcfmt.items():
             shape_optical_center[side] = vca_handler_frame_size.frame_recenter(trcfmt_value['R'], 
                                 side, 
                                 ipd_values[side], 
@@ -88,7 +88,7 @@ def shape_center(trcfmt: dict, ipd: dict, ocht: dict, dbl: float) -> dict:
 
 def r_l_gap_filler(tag_value: dict) -> dict:
     filled_tag_value = {}
-    for side, value in tag_value:
+    for side, value in tag_value.items():
         if not value:
             other_side = 'R' if side == 'L' else 'L'
             filled_tag_value[side] = tag_value[other_side]

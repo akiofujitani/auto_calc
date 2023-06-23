@@ -1,7 +1,7 @@
 {
     "sleep_time": 3,
-    "input": "./",
-    "output": "./",
-    "error": "./",
+    "input": "C:/Users/faust/OneDrive/Documentos/VCA/VCA Import",
+    "output": "C:/Users/faust/OneDrive/Documentos/VCA/VCA Import Test",
+    "error": "C:/Users/faust/OneDrive/Documentos/VCA/VCA Import Errors",
     "extension": "vca"
 }

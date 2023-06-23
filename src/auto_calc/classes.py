@@ -265,9 +265,9 @@ class Design:
             design = dict_values ['design']
             design_code = int(dict_values['design_code'])
             design_type = str(dict_values['design_type'])
-            corr_len_translator = dict_values['corr_len_translator']
             corr_len = dict_values['corr_len']
-            return cls(lds, lds_code, design, design_code, design_type, corr_len_translator, corr_len)
+            corr_len_translator = dict_values['corr_len_translator']
+            return cls(lds, lds_code, design, design_code, design_type, corr_len, corr_len_translator)
         except Exception as error:
             logger.error(f'Error in {error}') 
 

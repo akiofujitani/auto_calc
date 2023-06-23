@@ -1,4 +1,7 @@
+import math
 
-value = 3.25
 
-print(f'{value:0.5f}')
+angle = math.atan2(0, -2,)
+
+print(angle)
+print(math.degrees(angle))

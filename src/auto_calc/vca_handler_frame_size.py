@@ -27,8 +27,8 @@ def __shape_to_xy(shape_points):
         angle_unit = 360 / len(shape_points)
         angle_value = angle_unit
         for radius in shape_points:
-            x_value = math.cos(math.radians(angle_value)) * radius
-            y_value = math.sin(math.radians(angle_value)) * radius
+            x_value = math.cos(math.radians(angle_value)) * int(radius)
+            y_value = math.sin(math.radians(angle_value)) * int(radius)
             x_y_dict_list.append(Point(x_value, y_value))
             angle_value += angle_unit
     except Exception as error:
@@ -133,7 +133,7 @@ def __get_closest_angles(angle: float, angle_values: list) -> int:
             counter_minus = counter
         else:
             counter_plus = counter
-            if not counter_minus == None:
+            if not counter_minus == '':
                 return counter_minus, counter_plus
 
 
@@ -238,8 +238,8 @@ def frame_recenter(shape_data: list, side: str, ipd: float, ocht: float, dbl: fl
     shape_to_xy = __shape_to_xy(shape_data)
     frame_size = __xy_shape_size(shape_to_xy)
     logger.debug(f'Calculating diff {frame_size.hbox} x {frame_size.vbox}')
-    horizontal_center_diff = (frame_size.hbox / 2) - (ipd * 100) - ((dbl * 100) / 2)
-    vertical_center_diff = (ocht * 100) - (frame_size.vbox / 2)
+    horizontal_center_diff = (frame_size.hbox / 2) - (float(ipd) * 100) - ((float(dbl) * 100) / 2)
+    vertical_center_diff = (float(ocht) * 100) - (frame_size.vbox / 2)
     if side == 'L':
         horizontal_center_diff = horizontal_center_diff * -1
     shape_center_repositioned = xy_center_pos(shape_to_xy, horizontal_center_diff, vertical_center_diff)
@@ -257,22 +257,28 @@ def xy_center_pos(shape_in_xy: list, horizontal_center_diff: float, vertical_cen
 def resize_points(radius_list: list, hbox: float, vbox: float) -> dict:
     xy_shape = __shape_to_xy(radius_list)
     actual_shape_size = __xy_shape_size(xy_shape)
-    x_factor = actual_shape_size.hbox / hbox
-    y_factor = actual_shape_size.vbox / vbox
+    x_factor = float(hbox) / actual_shape_size.hbox
+    y_factor = float(vbox) / actual_shape_size.vbox
 
-    angle_step = math.radians(360 / len(radius_list))
+    angle_step = 360 / len(radius_list)
     resized_shape = {}
     angle = 0
+    # cos_zero = math.cos(0)
+    # sin_zero = math.sin(0)
     for radius in radius_list:
-        x_pre_resized = radius * x_factor
-        x_diff = x_pre_resized * math.cos(math.radians(angle))
-        y_pre_resized = radius * y_factor
-        y_diff = y_pre_resized * math.sin(math.radians(angle))
-        x_resized = x_diff * math.cos(angle) - y_diff * math.sin(angle)
-        y_resized = x_diff * math.cos(angle) + y_diff * math.sin(angle)
-
+        x_pre_resized = float(radius) * x_factor
+        y_pre_resized = float(radius) * y_factor
+        cos_angle = math.cos(math.radians(angle))
+        sin_angle = math.sin(math.radians(angle))
+        # x_diff = x_pre_resized * cos_angle * 100
+        # y_diff = y_pre_resized * sin_angle * 100
+        # x_resized = x_diff * cos_zero - y_diff * sin_zero
+        # y_resized = x_diff * sin_zero + y_diff * cos_zero
+        x_resized = x_pre_resized * cos_angle * 100
+        y_resized = y_pre_resized * sin_angle * 100
         new_angle = math.atan2(y_resized, x_resized)
         new_radius = round(math.sqrt((x_resized ** 2) + (y_resized ** 2)))
+        logger.debug(f'{math.degrees(new_angle)} {new_radius}')
         resized_shape[new_angle] = new_radius
         angle += angle_step
     
